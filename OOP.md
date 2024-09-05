@@ -170,3 +170,146 @@ struct binary_function {
     typedef Result result_type;
 };
 ```
+
+# 命名空间(namespace)
+```
+using namespace std;
+
+#include <iostream>
+#include <memory> // shared_ptr
+namespace hh01 {
+void test_member_template() {
+    ...
+}
+} // namespace
+
+#include <iostream>
+#include <list>
+namespace hh02 {
+template <typename T>
+using Lst = list<T, allocator<T>>;
+void test_template_template_param() {
+    ...
+}
+} // namespace
+
+int main() {
+    hh01::test_member_template();
+    hh02::test_template_template_param();
+}
+```
+
+# 类模板
+```
+template <typename T>
+class complex {
+public:
+    complex(T r = 0, T i = 0) : re(r), im(i) {}
+    complex& operator+=(const complex&);
+    T real() const {return re;}
+    T imag() const {return im;}
+private:
+    T re;
+    T im;
+    friend complex& __doapl (complex*, const complex&);
+};
+
+{
+    complex<double> c1(2.5, 1.5);
+    complex<int> c2(2, 6);
+    ...
+}
+```
+
+# 函数模板(function template)
+```
+class stone {
+public:
+    stone(int w, int h, int we) : _w(w), _h(h), _weight(we) {}
+
+    bool operator<(const stone& rhs) const { return _weight < rhs._weight;}
+
+private:
+    int _w, _h, _weight;
+}
+
+template <class T>
+inline const T& min(const T& a, const T& b) {return b < a ? b : a;}
+
+// 编译器会对函数模板进行实参推导(argument deduction)
+stone r1(2, 3), r2(3, 3), r3;
+r3 = min(r1, r2);
+```
+
+# 成员模板(member template)
+```
+template <class T1, class T2>
+struct pair {
+    typedef T1 first_type;
+    typedef T2 second_type;
+
+    T1 first;
+    T2 second;
+
+    pair() : first(T1()), second(T2()) {}
+    pair(const T1& a, const T2& b) : first(a), second(b) {}
+
+    template <class U1, class U2>
+    pair(const pair<U1, U2>& p) : first(p.first), second(p.second) {}
+};
+
+class Base1 {};
+class Derived1 : public Base1 {};
+class Base2 {};
+class Derived2 : public Base2 {};
+pair<Derived1, Derived2> p;
+pair<Base1, Base2> p2(p);
+
+pair<Base1, Base2> p2(pair<Derived1, Derived2>());
+// 把一个有鲫鱼和麻雀构成的pair放入一个由鱼类和鸟类构成的pair中，是可以的，反之则不行
+
+template <typename _Tp>
+class shared_ptr : public __shared_ptr<_Tp> {
+    ...
+    template <typename _Tp1>
+    explicit shared_ptr(_Tp1* __p) : __shared_ptr<_Tp>(__p) {}
+    ...
+}
+
+// up-cast
+Base1* ptr = new Derived1;
+// 模拟up-cast
+shared_ptr<Base1> sprt(new Derived1);
+```
+
+# 模板特化
++ 特化的反面就是泛化
+泛化就是模板，使用时再指定
+```
+template <class Key>
+struct hash {};
+
+// 因为key被绑定为char，所以<>里面为空
+template <>
+// 改行显示绑定内容
+struct hash<char> {
+    size_t operator()(char x) const {return x;}
+}
+
+template <>
+struct hash<int> {
+    size_t operator()(int x) const {return x;}
+}
+
+template <>
+struct hash<long> {
+    size_t operator()(long x) const {return x;}
+}
+
+// 类型名后面跟小括号，创建临时对象
+// 临时对象再调用函数调用符
+cout << hash<long>()(1000);
+```
+
+# 模板偏特化--个数的偏(partial specialization)
+泛化又叫全泛化(full specialization)
